@@ -152,3 +152,7 @@ fabric.properties
 
 # Mac Desktop Services Store
 .DS_Store/
+
+*.aux
+*.log
+*.synctex.gz
