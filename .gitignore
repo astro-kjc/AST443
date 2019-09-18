@@ -156,3 +156,5 @@ fabric.properties
 *.aux
 *.log
 *.synctex.gz
+
+*.fits
