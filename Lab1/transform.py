@@ -40,10 +40,10 @@ flat_master = np.median(flats, axis=0)
 flat_master /= np.median(flat_master)
 
 dark_sigma = num_sd(dark_master)
-dark_mask = dark_sigma < 3
+dark_mask = dark_sigma < 5
 
 flat_sigma = num_sd(flat_master)
-flat_mask = flat_sigma < 3
+flat_mask = flat_sigma < 5
 
 big_mask = flat_mask * dark_mask
 dim = int(np.sqrt(len(big_mask)))
