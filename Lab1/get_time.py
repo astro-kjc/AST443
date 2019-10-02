@@ -35,23 +35,14 @@ for cat_name in kitties:
     time_series.append(cut_kitty)
     t.append(time)
 
-print('-'*50)
-print(np.asarray(time_series[0]['Flux']).T)
-print('-'*50)
-
 flux = [list(df['Flux']) for df in time_series]
 flux_err = [list(df['Flux_err']) for df in time_series]
 
-flux = np.array(flux, dtype=np.float64).T
-flux_err = np.array(flux_err, dtype=np.float64).T
-
-print(flux)
+flux = np.array(flux).T
+flux_err = np.array(flux_err).T
 
 for i in range(len(flux)):
-    print(flux[i])
-    print(t)
-    plt.plot(t,flux[i], yerr=flux_err[i])
+
+    plt.plot(t, flux[i])
 
 plt.show()
-
-
