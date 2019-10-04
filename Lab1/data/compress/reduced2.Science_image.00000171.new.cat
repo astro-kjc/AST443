@@ -1,5 +1,0 @@
-#   1 NUMBER                 Running object number                                     
-#   2 ALPHA_J2000            Right ascension of barycenter (J2000)                      [deg]
-#   3 DELTA_J2000            Declination of barycenter (J2000)                          [deg]
-#   4 FLUX_APER              Flux vector within fixed circular aperture(s)              [count]
-#   5 FLUXERR_APER           RMS error vector for aperture flux(es)                     [count]
