@@ -35,6 +35,7 @@ time_series = []
 NUMREF = 15
 reference_stars = None
 cat_less = []
+skipped = 0
 
 for i, cat_name in enumerate(kitties):
 
@@ -54,10 +55,12 @@ for i, cat_name in enumerate(kitties):
         masked_kitty = kitty[mask][:NUMREF]
         masked_kitty.sort_values(by='Ra', inplace=True)
         reference_stars = np.array([masked_kitty['Ra'], masked_kitty['Dec']])
+        
     if int(cat_num) > 1403 and int(cat_num) < 1562:
-        epsilon = 8e-4
+        epsilon = 7.5e-4
     else:
         epsilon = 5e-4
+        
     kitty.sort_values(by='Ra', inplace=True)
     mask = is_kinda_in(kitty['Ra'], reference_stars[0], epsilon)
     mask &= is_kinda_in(kitty['Dec'], reference_stars[1], epsilon)
@@ -66,10 +69,11 @@ for i, cat_name in enumerate(kitties):
     if len(cut_kitty) == NUMREF:
         time_series.append(cut_kitty)
         t.append(time)
-    elif len(cut_kitty) < 10:
-        cat_less.append(int(cat_num))
-print(len(cat_less))
-print(cat_less)
+    else:
+        skipped += 1
+        # print(cat_num, len(cut_kitty))
+        
+print(f"Skipped: {100*skipped/len(kitties):.1f}%")
 
 flux = np.array([list(df['Flux']) for df in time_series])
 flux_err = np.array([list(df['Flux_err']) for df in time_series])
@@ -97,6 +101,8 @@ for i in range(len(flux)):
     plt.errorbar(t, flux[i], flux_err[i], fmt='.',
             label=rf"$\alpha$ = {ra:.2f}$^\circ$, $\delta$ = {dec:.2f}$^\circ$")
     plt.ylim(min(flux[i].min(), 0.8), max(flux[i].max(), 1.2))
+    plt.xlabel("Time Since Midnight UTC [s]")
+    plt.ylabel(r"$\frac{f}{\langle f \rangle}$")
     plt.legend()
     plt.savefig(f"lightcurves/lightcurve_{i}.png")
     plt.gcf().clear()
