@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import glob
 import os
@@ -58,8 +58,6 @@ for i, cat_name in enumerate(kitties):
     mask = is_kinda_in(kitty['Ra'], reference_stars[0])
     mask &= is_kinda_in(kitty['Dec'], reference_stars[1])
     cut_kitty = kitty[mask]
-    
-    print(len(cut_kitty))
     
     if len(cut_kitty) == NUMREF:
         time_series.append(cut_kitty)
