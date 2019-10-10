@@ -8,7 +8,7 @@ from transform import lazy_load_plz
 import matplotlib.pyplot as plt
 
 def load_cat(filename):
-    return pd.read_csv(filename, sep='\s+', skiprows=5, header=None, names=['Num','Ra', 'Dec',
+    return pd.read_csv(filename, sep=r'\s+', skiprows=5, header=None, names=['Num','Ra', 'Dec',
             'Flux', 'Flux_err'])
 
 def load_time(file_num):
@@ -47,81 +47,87 @@ def get_field(row_list, field):
     
     return [row[field] for row in row_list]
 
-kitties = glob.glob("data/*.cat")
-kitties = sorted(kitties)
+if __name__ == "__main__":
 
-t = np.zeros(len(kitties), dtype=np.float64)
-NUMREF = 15
-reference_stars = None
-time_series = [list() for i in range(NUMREF)]
-indices = [list() for i in range(NUMREF)]
+    kitties = glob.glob("data/*.cat")
+    kitties = sorted(kitties)
 
-for i, cat_name in enumerate(kitties):
+    t = np.zeros(len(kitties), dtype=np.float64)
+    NUMREF = 15
+    reference_stars = None
+    time_series = [list() for i in range(NUMREF)]
+    indices = [list() for i in range(NUMREF)]
 
-    kitty = load_cat(cat_name)
-    cat_num = cat_name.split('.')[-3]
-    time = load_time(cat_num)
-    
-    if reference_stars is None:
+    for i, cat_name in enumerate(kitties):
 
-        kitty.sort_values(by='Flux', ascending=False, inplace=True)
-
-        mask = kitty['Ra'] >= 300
-        mask &= kitty['Ra'] <= 300.25
-        mask &= kitty['Dec'] >= 22.5
-        mask &= kitty['Dec'] <= 22.8
-
-        masked_kitty = kitty[mask][:NUMREF]
-        masked_kitty.sort_values(by='Ra', inplace=True)
-        reference_stars = np.array([masked_kitty['Ra'], masked_kitty['Dec']]).T
+        kitty = load_cat(cat_name)
+        cat_num = cat_name.split('.')[-3]
+        time = load_time(cat_num)
         
-    if len(kitty) <= 0: continue
-        
-    for j, starcoords in enumerate(reference_stars):
-        
-        match = fuzzy_match(starcoords, kitty)
-        if match is not None:
-            time_series[j].append(match)
-            indices[j].append(i)
+        if reference_stars is None:
+
+            kitty.sort_values(by='Flux', ascending=False, inplace=True)
+
+            mask = kitty['Ra'] >= 300
+            mask &= kitty['Ra'] <= 300.25
+            mask &= kitty['Dec'] >= 22.5
+            mask &= kitty['Dec'] <= 22.8
+
+            masked_kitty = kitty[mask][:NUMREF]
+            reference_stars = np.array([masked_kitty['Ra'], masked_kitty['Dec']]).T
             
-    t[i] = time
-    
-    prog = i / len(kitties)
-    numspace = int(50*(1-prog))
-    pbar = "[" + "#" * (50-numspace) + " " * numspace + "]"
-    end = "" if i < len(kitties) - 1 else "\n"
-    print(f"\r{pbar} {100*prog:.0f}%", end=end)
+        if len(kitty) <= 0: continue
+            
+        for j, starcoords in enumerate(reference_stars):
+            
+            match = fuzzy_match(starcoords, kitty)
+            if match is not None:
+                time_series[j].append(match)
+                indices[j].append(i)
+                
+        t[i] = time
+        
+        prog = i / len(kitties)
+        numspace = int(50*(1-prog))
+        pbar = "[" + "#" * (50-numspace) + " " * numspace + "]"
+        end = "" if i < len(kitties) - 1 else "\n"
+        print(f"\r{pbar} {100*prog:.0f}%", end=end)
 
-flux = (get_field(row_list, "Flux") for row_list in time_series)
-flux = list(map(np.array, flux))
+    flux = (get_field(row_list, "Flux") for row_list in time_series)
+    flux = list(map(np.array, flux))
 
-flux_err = (get_field(row_list, "Flux_err") for row_list in time_series)
-flux_err = list(map(np.array, flux_err))
+    flux_err = (get_field(row_list, "Flux_err") for row_list in time_series)
+    flux_err = list(map(np.array, flux_err))
 
-mu = [flux_arr.mean() for flux_arr in flux]
+    mu = [flux_arr.mean() for flux_arr in flux]
 
-flux = [flux[i] / mu[i] for i in range(len(flux))]
-flux_err = [flux_err[i] / mu[i] for i in range(len(flux_err))]
+    flux = [flux[i] / mu[i] for i in range(len(flux))]
+    flux_err = [flux_err[i] / mu[i] for i in range(len(flux_err))]
 
-if not os.path.isdir("lightcurves"):
-    os.mkdir("lightcurves")
+    if not os.path.isdir("lightcurves"):
+        os.mkdir("lightcurves")
 
-"""
-np.savetxt("lightcurves/ref_stars.csv", reference_stars, delimiter=",")
-np.savetxt("lightcurves/flux.csv", flux, delimiter=",")
-np.savetxt("lightcurves/flux_err.csv", flux_err, delimiter=",")
-np.savetxt("lightcurves/times.csv", t, delimiter=",")
-"""
+    for i in range(NUMREF):
+        if not os.path.isdir(f"lightcurves/star_{i}"):
+            os.mkdir(f"lightcurves/star_{i}")
 
-# I tried a bunch of subplots, but they weren't really readable
+    np.savetxt("lightcurves/ref_stars.csv", reference_stars, header="RA Dec", delimiter=",")
+    np.savetxt("lightcurves/times.csv", t, delimiter=",")
 
-for i in range(NUMREF):
+    for i in range(NUMREF):
+        np.savetxt(f"lightcurves/star_{i}/flux_{i}.csv", flux[i], delimiter=",")
+        np.savetxt(f"lightcurves/star_{i}/flux_err_{i}.csv", flux_err[i], delimiter=",")
+        np.savetxt(f"lightcurves/star_{i}/indices_{i}.csv", indices[i], delimiter=",")
 
-    ra, dec = reference_stars[i]
-    plt.errorbar(t[indices[i]], flux[i], flux_err[i], fmt='.',
-            label=rf"$\alpha$ = {ra:.2f}$^\circ$, $\delta$ = {dec:.2f}$^\circ$")
-    plt.xlabel("Time Since Midnight UTC [s]")
-    plt.ylabel(r"$\frac{f}{\langle f \rangle}$")
-    plt.legend()
-    plt.savefig(f"lightcurves/lightcurve_{i}.png")
-    plt.gcf().clear()
+    # I tried a bunch of subplots, but they weren't really readable
+
+    for i in range(NUMREF):
+
+        ra, dec = reference_stars[i]
+        plt.errorbar(t[indices[i]], flux[i], flux_err[i], fmt='.',
+                label=rf"$\alpha$ = {ra:.2f}$^\circ$, $\delta$ = {dec:.2f}$^\circ$")
+        plt.xlabel("Time Since Midnight UTC [s]")
+        plt.ylabel(r"$\frac{f}{\langle f \rangle}$")
+        plt.legend()
+        plt.savefig(f"lightcurves/star_{i}/lightcurve_{i}.png")
+        plt.gcf().clear()
