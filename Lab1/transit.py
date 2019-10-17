@@ -30,7 +30,7 @@ class Star:
         self.flux_err = self.flux_err[mask]
         self.indices = self.indices[mask]
 
-    def plot(self, binsize=None, figsize=(12, 9)):
+    def plot(self, binsize=None, figsize=(12, 9), vlines=()):
 
         if binsize is None:
             times = self.times[self.indices]
@@ -48,6 +48,10 @@ class Star:
         plt.xlabel("Time Since Midnight UTC [h]")
         plt.ylabel(r"$\frac{f}{\langle f \rangle}$")
         plt.legend()
+
+        for vline in vlines:
+            plt.axvline(vline / 3600, color='black', linestyle='--')
+
         plt.gcf().set_size_inches(figsize)
         plt.show()
 
@@ -131,35 +135,50 @@ if __name__ == "__main__":
     # Need to account for error in mu
     main_star.flux_err = main_star.flux_err / mu[main_star.indices]
 
-    baseline_mask = Star.times[main_star.indices] < 9000
-    baseline_mask |= Star.times[main_star.indices] > 16000
+    baseline_mask = Star.times[main_star.indices] < 9500
+    baseline_mask |= Star.times[main_star.indices] > 15700
 
     # Do a linear fit - there is a slight increase in flux
     baseline_times = Star.times[main_star.indices][baseline_mask]
     baseline_flux = main_star.flux[baseline_mask]
-    m, b = np.polyfit(baseline_times, baseline_flux, 1)
+    baseline_flux_err = main_star.flux_err[baseline_mask]
+    m, b = np.polyfit(baseline_times, baseline_flux, 1, w=1/baseline_flux_err)
     baseline = m*Star.times[main_star.indices] + b
 
     main_star.flux /= baseline
     main_star.flux_err /= baseline
     
     binsize = 180
-    main_star.plot(binsize)
     time_bounds = Star.times[0] + binsize/2, Star.times[-1] - binsize/2,
-    times = np.arange(*time_bounds, step=binsize)
+    bintimes = np.arange(*time_bounds, step=binsize)
     binned_flux, binned_flux_err = main_star.bin_fluxes(binsize)
-    binned_flux = binned_flux[:len(times)]
-    binned_flux_err = binned_flux_err[:len(times)]
+    binned_flux = binned_flux[:len(bintimes)]
+    binned_flux_err = binned_flux_err[:len(bintimes)]
 
     def part_of_dip(i):
-        meets_thresh = binned_flux[i] <= 0.995
+
+        meets_thresh = binned_flux[i] <= thresh
         left_mt = right_mt = False
-        if i > 0: left_mt = binned_flux[i-1] <= 0.995
-        if i < len(times)-1: right_mt = binned_flux[i+1] <= 0.995
+        if i > 0: left_mt = binned_flux[i-1] <= thresh
+        if i < len(bintimes)-1: right_mt = binned_flux[i+1] <= thresh
         return meets_thresh & (left_mt | right_mt)
+
+    thresh = 0.982
     transit_mask = list(map(part_of_dip, range(len(binned_flux))))
-    transit_times = times[transit_mask]
-    transit_flux = binned_flux[transit_mask]
+    peak_transit_times = bintimes[transit_mask]
+    peak_transit_bounds = peak_transit_times[0], peak_transit_times[-1]
+    
+    thresh = 0.9975
+    transit_mask = list(map(part_of_dip, range(len(binned_flux))))
+    transit_times = bintimes[transit_mask]
+    transit_bounds = transit_times[0], transit_times[-1]
+
+    start, end = peak_transit_bounds
+    peak_transit = Star.times[main_star.indices] > start
+    peak_transit &= Star.times[main_star.indices] < end
+    transit_flux = main_star.flux[peak_transit]
+
+    main_star.plot(binsize, vlines=transit_bounds+peak_transit_bounds)
 
     # Compute transit midpoint
     midpoint = np.median(transit_times)
@@ -169,8 +188,17 @@ if __name__ == "__main__":
 
     # Compute transit depth
     transit_depth = 1 - transit_flux.mean()
-    print(f"Transit Depth: {transit_depth*100:.1f}%")
+    transit_depth_err = transit_flux.std() / np.sqrt(len(transit_flux))
+    print(f"Transit Depth: {transit_depth:.4f} +- {transit_depth_err:.4f}")
 
     # Planet radius
     rad_rat = np.sqrt(transit_depth)
-    print(f"Radius Ratio: {rad_rat:.3f}")
+    rad_rat_err = transit_depth_err / (2 * rad_rat)
+    print(f"Radius Ratio: {rad_rat:.3f} +- {rad_rat_err:.3f}")
+
+    lit_rat = 0.10049*1.138 / 0.805
+    lit_rat_err = np.sqrt((0.027*0.10049 / 0.805)**2 + (0.10049*1.138 / 0.805**2 * 0.016)**2)
+    
+    comb_err = np.sqrt(rad_rat_err**2 + lit_rat_err**2)
+    num_sd = (rad_rat - lit_rat) / comb_err
+    print(f"Error: {num_sd:.2f} sigma")
