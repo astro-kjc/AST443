@@ -41,7 +41,7 @@ class Star:
             flux, flux_err = self.bin_fluxes(binsize)
             flux = flux[:len(times)]
             flux_err = flux_err[:len(times)]
-            
+
         label = rf"$\alpha$ = {self.ra:.2f}$^\circ$, $\delta$ = {self.dec:.2f}$^\circ$"
         plt.errorbar(times / 3600, flux, flux_err, fmt='.',
                     label=label, markersize=8, capsize=2)
@@ -65,9 +65,9 @@ class Star:
         binned_flux = np.zeros(bindices.max() + 1)
         exp_flux2 = np.zeros(len(binned_flux))
         counts = np.zeros(len(binned_flux), dtype=np.int32)
-        
+
         for i in range(len(self.flux)):
-            
+
             binned_flux[bindices[i]] += self.flux[i]
             exp_flux2[bindices[i]] += self.flux[i]**2
             counts[bindices[i]] += 1
@@ -89,11 +89,11 @@ def keep_frames_with_all(stars):
     indices = np.arange(0, len(Star.times), dtype=np.int32)
     indices = indices[mask]
     indices = set(indices)
-    
+
     @np.vectorize
     def valid_indices(i):
         return i in indices
-    
+
     for star in stars:
 
         mask = valid_indices(star.indices)
@@ -120,7 +120,7 @@ def err_weighted_mean(stars):
     return mu, sigma
 
 if __name__ == "__main__":
-    
+
     main_star = Star(0)
     ref_stars = list(map(Star, range(1, 11)))
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     main_star.flux /= baseline
     main_star.flux_err /= baseline
-    
+
     binsize = 180
     time_bounds = Star.times[0] + binsize/2, Star.times[-1] - binsize/2,
     bintimes = np.arange(*time_bounds, step=binsize)
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     transit_mask = list(map(part_of_dip, range(len(binned_flux))))
     peak_transit_times = bintimes[transit_mask]
     peak_transit_bounds = peak_transit_times[0], peak_transit_times[-1]
-    
+
     thresh = 0.9975
     transit_mask = list(map(part_of_dip, range(len(binned_flux))))
     transit_times = bintimes[transit_mask]
@@ -198,7 +198,12 @@ if __name__ == "__main__":
 
     lit_rat = 0.10049*1.138 / 0.805
     lit_rat_err = np.sqrt((0.027*0.10049 / 0.805)**2 + (0.10049*1.138 / 0.805**2 * 0.016)**2)
-    
+
+    lit_trnst_dpth = lit_rat**2
+    lit_trnst_dpth_err = lit_rat_err*2*lit_rat
+
     comb_err = np.sqrt(rad_rat_err**2 + lit_rat_err**2)
     num_sd = (rad_rat - lit_rat) / comb_err
     print(f"Error: {num_sd:.2f} sigma")
+    print("Accepted Ratio", round(lit_rat,5), '+-', round(lit_rat_err,5))
+    print("Accepted Depth", round(lit_trnst_dpth,5), '+-', round(lit_trnst_dpth_err,5))
