@@ -1,0 +1,29 @@
+- Note that your exposure times should be significantly longer, since the light is spread over many more pixels than in the exoplanet lab.  
+Ok
+
+
+- Jeffrey's proposal didn’t specify how the B and V magnitudes will be calibrated.  Please come up with a strategy, and check it with me well in advance of your observations.
+Take picture of star with known color, fit blackbody, (Image - dark)/flat/blackbody. Find ratio between B and V fluxes, this is the messup of CCD. We then divide by that from our picture of the galaxy.
+We could also take into account dust reddening via the standard color-excess. Should we take this into account? 
+
+
+- The conversion from images to stellar mass is non-trivial.  Please come up with a strategy, and check it with me well in advance of your observations.
+https://arxiv.org/pdf/1407.1839.pdf log(M/L) = -.628 + 1.305*(B-V)
+
+
+- Please verify whether your galaxy actually has emission lines, including H alpha.  If not, come up with a back-up line to target for measuring the rotation velocity.
+:( NGC 891 is muchhhh better
+RA: 02:22:32
+Dec 42:20:54
+
+
+- You will need a record of where exactly on the galaxy you took the spectrum.  Figure out how to do this.
+We know RA/Dec of the middle. We can just go a set amount inside/outside ra/dec of that. We know the angular size as well as the distance so we can calculate where in the galaxy we are.
+
+
+- Because the galaxy is larger than the slitlength, you will need to take separate spectra of the sky background.
+Ok
+
+
+- For the analysis, you will need to know the distance to the galaxy.  Since the galaxy is relatively nearby, the redshift is not necessarily be a reliable 
+Ok (19.5 MPc)
